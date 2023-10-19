@@ -1,4 +1,5 @@
 #include "Image.h"
+#include <cstring>
 using std::cout, std::cin;
 
 // helpers for controller
@@ -48,9 +49,12 @@ bool imageExists(Image &img) {
 
 // controller / driver
 // supports terminal
-int main() {
-    bool running {true};
-
+int main(int argc, char* argv[]) {
+    bool running = argc == 2 && strcmp(argv[1], "-c");
+    if (!running) {
+        cout << "Run with \"-c\" flag to run controller. Bye bye!" << endl;
+        return 0;
+    }
     // case variables
     Image img = Image();
     string inFilename {};
