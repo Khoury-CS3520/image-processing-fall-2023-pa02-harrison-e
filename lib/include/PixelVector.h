@@ -2,15 +2,20 @@
 #define IMAGELIB_PIXELVECTOR_H
 #include "Pixel.h"
 
+/**
+ * Represents a vector of Pixels
+ * In the context of an Image, can represent either a row or a column
+ *
+ * @param vec               A pointer to the first Pixel of the vector
+ * @param length            How many elements are currently in the vector
+ * @param capacity          How many elements can fit in the vector before resizing
+ * @param componentsUsed    How many components are used in the vector
+ */
 class PixelVector {
 private:
-    // the vector of pixels
     Pixel* vec {};
-    // the length (# of elements) of the vector
     unsigned length;
-    // the capacity of the vector
     unsigned capacity;
-    // channel type
     channel_t componentsUsed;
 
 public:
@@ -40,22 +45,13 @@ public:
     void resize(unsigned delta, unsigned offset);
 
     // push to back
-    void pushBack(Pixel& pixel);
+    void pushBack(const Pixel &pixel);
 
     // reverse this vec
     void reverse();
 
     /////////////////////////
     // getters
-
-    // capacity
-    unsigned getCapacity() { return this->capacity; }
-
-    // length
-    unsigned getLength() { return this->length; }
-
-    // components used
-    channel_t getCompUsed() { return this->componentsUsed; }
 
     // pixel at (const ref)
     Pixel& pixelAt(unsigned index) const;

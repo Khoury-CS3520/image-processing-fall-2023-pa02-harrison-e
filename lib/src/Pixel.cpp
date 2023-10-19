@@ -40,13 +40,27 @@ Pixel::Pixel(const Pixel &copyMe) {
     this->componentsUsed = copyMe.componentsUsed;
 }
 
-Pixel& Pixel::operator=(const Pixel & p) {
-    this->r = p.r;
-    this->g = p.g;
-    this->b = p.b;
-    this->a = p.a;
-    this->componentsUsed = p.componentsUsed;
+unsigned char Pixel::getIntensity() {
+    switch (componentsUsed) {
+        case GR:
+            return r;
+        case GRa:
+            return (r + a) / 2;
+        case RGB:
+            return (r + g + b) / 3;
+        case RGBa:
+            return (r + g + b + a) / 4;
+    }
+}
 
+Pixel & Pixel::operator=(const Pixel & p) {
+    if (this != &p) {
+        this->componentsUsed = p.componentsUsed;
+        this->r = p.r;
+        this->g = p.g;
+        this->b = p.b;
+        this->a = p.a;
+    }
     // return invoking obj, dereferenced
     return *this;
 }

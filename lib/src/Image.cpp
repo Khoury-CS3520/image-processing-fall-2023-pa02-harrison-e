@@ -10,20 +10,19 @@
 
 Image::~Image() {
     delete[] pixels;
-    cout << "img dtor" << endl;
 }
 
-// make a grey image of specified dimensions
+// make a grey gradient image of specified dimensions
 Image::Image(const unsigned X, const unsigned Y) {
     this->x = X;
     this->y = Y;
     this->componentsUsed = GR;
     this->pixels = new PixelVector [Y];
-    auto p = Pixel(100);
+    Pixel p = Pixel(100);
     Pixel* pp = nullptr;
 
     for (unsigned y = 0; y < this->y; y++) {
-        auto pn = Pixel(p.getR() + 5*y);
+        Pixel pn = Pixel(p.getR() + 5*y);
         pp = &pn;
         for (unsigned x = 0; x < this->x; x++) {
             auto pnn = Pixel(pp->getR() + 5);
@@ -37,57 +36,52 @@ Image::Image(const unsigned X, const unsigned Y) {
 
 /////////////////////////
 // file i/o
-
-Image::Image(const char* filename, const unsigned X, const unsigned Y, const channel_t componentsUsed) {
-    cout << "reading image from ../sampleImages/" << filename;
+// read constructor
+Image::Image(string filename, const unsigned X, const unsigned Y, const channel_t encodedComponents, const channel_t desiredComponents) {
     int width = int(X);
     int height = int(Y);
-    int n = int(componentsUsed);
-    const char* filepath = strcat("../sampleImages/",filename);
-    charArray data = stbi_load(filepath, &width, &height, &n, 0);
+    int encoded = int(encodedComponents);
+    int n = int(desiredComponents);
+    inputFilepath = "../sampleImages/" + filename;
+    charArray data = stbi_load(inputFilepath.c_str(), &width, &height, &encoded, n);
+
     if (!data) {
-        cerr << "Could not read image from file: ../sampleImages/" << filepath << endl;
+        cerr << "Could not read image from file: ../sampleImages/" << inputFilepath << endl;
+        this->pixels = nullptr;
     } else {
         this->x = X;
         this->y = Y;
-        this->componentsUsed = componentsUsed;
+        this->componentsUsed = desiredComponents;
         this->pixels = new PixelVector [Y];
-        unsigned gr, r, g, b, a = 0;
-        // `i` indexes into `data`, increments by # of components
-        for (unsigned i = 0; i < x * y * n; i += n) {
-            unsigned px = i % x;
-            unsigned py = i / x;
-            switch (this->componentsUsed) {
-                case GR:
-                    gr = data[i];
-                    pixels[py][px] = Pixel(gr);
-                    break;
-                case GRa:
-                    gr = data[i];
-                    a  = data[i+1];
-                    pixels[py][px] = Pixel(gr, a);
-                    break;
-                case RGB:
-                    r = data[i];
-                    g = data[i+1];
-                    b = data[i+2];
-                    pixels[py][px] = Pixel(r, g, b);
-                    break;
-                case RGBa:
-                    r = data[i];
-                    g = data[i+1];
-                    b = data[i+2];
-                    a = data[i+3];
-                    pixels[py][px] = Pixel(r, g, b, a);
-                    break;
-            }
-        }
+        expandImage(data);
     }
+    stbi_image_free(data);
 }
 
+void Image::write(string filename, format_t format) {
+    outputFilepath = "../sampleImages/" + filename;
+    int X = int(x);
+    int Y = int(y);
+    int N = int(componentsUsed);
+    int stride = N * X;
+    unsigned dataLength = X * Y * N;
+    charArray data = new unsigned char [dataLength];
+    flattenImage(data, dataLength);
 
-void Image::write(string filepath, channel_t componentsUsed) {
-    // TODO writing here
+    // convert from pixels[][] to data[]
+    switch (format) {
+        case PNG:
+            stbi_write_png((outputFilepath + ".png").c_str(), X, Y, N, data, stride);
+            break;
+        case JPG:
+            stbi_write_jpg((outputFilepath + ".jpg").c_str(), X, Y, N, data, 100);
+            break;
+        case BMP:
+            stbi_write_bmp((outputFilepath + ".bmp").c_str(), X, Y, N, data);
+            break;
+    }
+
+    delete[] data;
 }
 
 
@@ -95,7 +89,7 @@ void Image::write(string filepath, channel_t componentsUsed) {
 /////////////////////////
 // transformations
 void Image::flipHorizontal() {
-    for (int y = 0; y < this->y; y++) {
+    for (unsigned y = 0; y < this->y; y++) {
         PixelVector* r = &this->rowAt(y);
         r->reverse();
     }
@@ -104,17 +98,16 @@ void Image::flipHorizontal() {
 void Image::flipVertical() {
     // very similar implementation to PixelVector::reverse()
     PixelVector* rev = new PixelVector [this->y];
-    for (int y = 0; y < this->y; y++)
+    for (unsigned y = 0; y < this->y; y++)
         rev[y] = this->constRowAt(this->y - y - 1);
     delete[] this->pixels;
     this->pixels = rev;
 }
 
 void Image::rotatePos90() {
-    cout << "+90 deg" << endl;
     unsigned temp_y = this->x;
     PixelVector* temp = new PixelVector [temp_y];
-    for (int i = 0; i < temp_y; i++) {
+    for (unsigned i = 0; i < temp_y; i++) {
         temp[i] = this->columnAt(i);
         temp[i].reverse();
     }
@@ -125,10 +118,9 @@ void Image::rotatePos90() {
 }
 
 void Image::rotateNeg90() {
-    cout << "-90deg" << endl;
     unsigned temp_y = this->x;
     PixelVector* temp = new PixelVector [temp_y];
-    for (int i = 0; i < temp_y; i++)
+    for (unsigned i = 0; i < temp_y; i++)
         temp[i] = this->columnAt(temp_y - i - 1);
     this->x = this->y;
     this->y = temp_y;
@@ -136,13 +128,12 @@ void Image::rotateNeg90() {
     this->pixels = temp;
 }
 
-void Image::addBorder(Pixel & borderPx, unsigned width) {
-    cout << "adding border" << endl;
+void Image::addBorder(Pixel borderPx, unsigned width) {
     unsigned new_y = width + this->y + width;
     unsigned new_x = width + this->x + width;
     PixelVector* temp = new PixelVector [new_y];
-    for (int i = 0; i < new_y; i++) {
-        for (int j = 0; j < new_x; j++) {
+    for (unsigned i = 0; i < new_y; i++) {
+        for (unsigned j = 0; j < new_x; j++) {
             if (i < width || j < width
             ||  i > (new_y - width - 1) || j > (new_x - width - 1)) {
                 temp[i].pushBack(borderPx);
@@ -158,24 +149,47 @@ void Image::addBorder(Pixel & borderPx, unsigned width) {
 }
 
 void Image::pointillize() {
-    // TODO
+    // calculate radius range and # dots based on image size
+    unsigned int nDots = (x * y) / 12;
+    unsigned int rMax  = min(int(min(x, y)) / 15, 99);
+    unsigned int rMin  = max(int(rMax) / 2, 3);
+    float intensityToR = (float(rMax) - float(rMin)) / 255;
+
+    PixelVector* temp = new PixelVector [y];    // pointillism "canvas"
+    for (unsigned y = 0; y < this->y; y++)
+        temp[y] = this->rowAt(y);
+
+    // randomly place dots, dot radius based on range & intensity
+    for (int dot = 0; dot < nDots; dot++) {
+        unsigned dotX = rand() % x;
+        unsigned dotY = rand() % y;
+        Pixel dotCopy = pixels[dotY][dotX];
+        unsigned intensity = max(int(min(int(dotCopy.getIntensity()), 223)), 111);
+        unsigned dotR = unsigned (intensityToR * intensity);
+        for (int pointY = dotY - dotR; pointY <= dotY + dotR; pointY++) {
+            for (int pointX = dotX - dotR; pointX <= dotX + dotR; pointX++) {
+                float distance = sqrt(pow((float(pointX) - float(dotX)), 2) + pow((float(pointY) - float(dotY)), 2));
+                if (pointX >= 0 && pointY >= 0 && pointX <= x - 1 && pointY <= y - 1
+                && distance <= dotR) {
+                    temp[pointY][pointX] = dotCopy;
+                }
+            }
+        }
+    }
+    delete[] this->pixels;
+    this->pixels = temp;
 }
 
 
 
 /////////////////////////
 // convenience
-Pixel & Image::pixelAt(const unsigned X, const unsigned Y) {
-    if (pixels)
-        return this->pixels[Y].pixelAt(X);
-}
 
 PixelVector & Image::columnAt(unsigned X) {
-    cout << "fetching col..." << endl;
     PixelVector* col = nullptr;
     if (X < this->x) {
         col = new PixelVector(this->y, this->componentsUsed);
-        for (int y = 0; y < this->y; y++) {
+        for (unsigned y = 0; y < this->y; y++) {
             col->pushBack(this->pixels[y].operator[](X));
         }
     } else {
@@ -186,14 +200,14 @@ PixelVector & Image::columnAt(unsigned X) {
 }
 
 PixelVector & Image::rowAt(unsigned Y) {
+    PixelVector* mt = nullptr;
     if (Y < this->y) {
-        return this->pixels[Y];
+        mt = &this->pixels[Y];
     } else {
         // throw exception
         cerr << "Row out of bounds" << endl;
-        PixelVector* mt = nullptr;
-        return *mt;
     }
+    return *mt;
 }
 
 PixelVector & Image::constRowAt(unsigned Y) const {
@@ -207,6 +221,72 @@ PixelVector & Image::constRowAt(unsigned Y) const {
     }
 }
 
+void Image::expandImage(charArray data) {
+    int n = int(componentsUsed);
+    unsigned char gr, r, g, b, a {};
+    Pixel p = Pixel();
+    Pixel* pp = &p;
+    // `i` indexes into `data`, increments by # of components
+    for (unsigned i = 0; i < x * y * n; i += n) {
+        unsigned py = i / (x * n);
+        switch (this->componentsUsed) {
+            case GR:
+                gr = data[i];
+                p = Pixel(gr);
+                pixels[py].pushBack(*pp);
+                break;
+            case GRa:
+                gr = data[i];
+                a  = data[i+1];
+                p = Pixel(gr, a);
+                pixels[py].pushBack(*pp);
+                break;
+            case RGB:
+                r = data[i];
+                g = data[i+1];
+                b = data[i+2];
+                p = Pixel(r, g, b);
+                pixels[py].pushBack(*pp);
+                break;
+            case RGBa:
+                r = data[i];
+                g = data[i+1];
+                b = data[i+2];
+                a = data[i+3];
+                p = Pixel(r, g, b, a);
+                pixels[py].pushBack(*pp);
+                break;
+        }
+    }
+}
+
+void Image::flattenImage(charArray data, const unsigned dataLength) {
+    int N = int(componentsUsed);
+    for (unsigned i = 0; i < dataLength; i += N) {
+        Pixel & currentPixel = pixels[i / (x * N)][(i / N) % x];
+        switch (componentsUsed) {
+            case GR:
+                data[i] = currentPixel.getR();
+                break;
+            case GRa:
+                data[i] = currentPixel.getR();
+                data[i+1] = currentPixel.getA();
+                break;
+            case RGB:
+                data[i] = currentPixel.getR();
+                data[i+1] = currentPixel.getG();
+                data[i+2] = currentPixel.getB();
+                break;
+            case RGBa:
+                data[i] = currentPixel.getR();
+                data[i+1] = currentPixel.getG();
+                data[i+2] = currentPixel.getB();
+                data[i+3] = currentPixel.getA();
+                break;
+        }
+    }
+}
+
 /////////////////////////
 // overloaded operators
 ostream & operator<<(ostream& out, const Image& img) {
@@ -215,6 +295,7 @@ ostream & operator<<(ostream& out, const Image& img) {
         out << img.pixels[y] << endl;
     }
     return out;
+
 }
 
 
@@ -223,15 +304,33 @@ PixelVector & Image::operator[](unsigned Y) {
         return pixels[Y];
 }
 
+Image & Image::operator=(const Image & that) {
+    if (this != &that) {
+        delete[] this->pixels;
+        this->x = that.x;
+        this->y = that.y;
+        this->componentsUsed = that.componentsUsed;
+        this->inputFilepath = that.inputFilepath;
+        this->outputFilepath = that.outputFilepath;
+        this->pixels = new PixelVector [this->y];
+        for (int y = 0; y < this->y; y++)
+            this->pixels[y] = that.pixels[y];
+    }
+    return *this;
+}
+
+bool Image::operator!() {
+    return this->pixels == nullptr;
+}
+
 Image::Image(const Image &that) {
-    cout << "img copy ctor" << endl;
     this->x = that.x;
     this->y = that.y;
     this->componentsUsed = that.componentsUsed;
     this->inputFilepath = that.inputFilepath;
     this->outputFilepath = that.outputFilepath;
     this->pixels = new PixelVector [this->y];
-    for (int y = 0; y < this->y; y++) {
+    for (unsigned y = 0; y < this->y; y++) {
         this->rowAt(y) = that.constRowAt(y);
     }
 }

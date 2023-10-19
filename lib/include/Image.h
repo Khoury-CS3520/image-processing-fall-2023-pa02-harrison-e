@@ -1,18 +1,43 @@
 #ifndef IMAGELIB_IMAGE_H
 #define IMAGELIB_IMAGE_H
 #include <string>
+#include <cmath>
+#include <stdlib.h>
 #include "PixelVector.h"
 
-using std::string;
+using std::string, std::min, std::max, std::rand;
 
+/**
+ * @enum representing image file formats (for exporting images)
+ *  PNG     represents a .png image
+ *  JPG     represents a .jpg/.jpeg image
+ *  BMP     represents a .bmp image
+ */
+typedef enum imageFormat {
+    PNG,
+    JPG,
+    BMP
+} format_t;
+
+/**
+ * Represents an Image
+ *
+ * @param x                 The width of the image (# rows)
+ * @param y                 The height of the image (# columns)
+ * @param componentsUsed    How many components are used in the image
+ * @param inputFilepath     The filepath to the input image (relative to this file)
+ * @param outputFilepath    The filepath to the output image (relative to this file)
+ * @param pixels            Pointer to the first PixelVector in the PixelMatrix
+ */
 class Image {
 private:
-    // width, height, and components used
-    unsigned x;
-    unsigned y;
+    unsigned x; // width
+    unsigned y; // height
     channel_t componentsUsed;
+    string inputFilepath;
+    string outputFilepath;
 
-    // CharArray is an alias for an array of chars
+    // CharArray is an alias for a pointer to an unsigned char
     // Used to interact with STBI
     typedef unsigned char* charArray;
 
@@ -21,50 +46,46 @@ private:
     // Represents, in data, the column of rows of pixels
     typedef PixelVector* PixelMatrix;
 
-    // input filepath
-    string inputFilepath;
-    // output filepath
-    string outputFilepath;
     // pointer to array of pixel vectors
     PixelMatrix pixels;
 
 public:
     /////////////////////////
-    // constructors
-    // default constructor (for tests)
-    Image() : x {0}, y {0}, componentsUsed{GR}, inputFilepath {""}, outputFilepath {""}, pixels {nullptr} {}
+    // constructors (except file read constructor)
+
+    // default
+    Image() : x{}, y{}, componentsUsed{GR}, inputFilepath{}, outputFilepath{}, pixels{nullptr} {}
+
+    // constructor for grey gradient
+    Image(unsigned X, unsigned Y);
 
     // destructor
     ~Image();
 
-    // constructor for grey box
-    Image(unsigned X, unsigned Y);
+
+    /////////////////////////
+    // file i/o
+
+    // constructor reads from ../sampleImages/filename w/ spec components, encodes with specified dimensions & # components
+    Image(string filename, unsigned X, unsigned Y, channel_t encodedComponents, channel_t desiredComponents);
+
+    // write an image to ../sampleImages/filename, in specified format
+    // NOTE this function adds an appropriate file extension to `filename`
+    void write(string filename, format_t format);
 
 
     /////////////////////////
-    // TODO file i/o
-    // constructor reads from ../sampleImages/filename, with specified # components
-    Image(const char* filename, unsigned X, unsigned Y, channel_t componentsUsed);
-
-    // write an image to `filepath`, with specified # components
-    // 2D PixelMatrix to 1D char array
-    void write(string filepath, channel_t componentsUsed);
-
-
-    /////////////////////////
-    // TODO transformations
+    // transformations
     void flipHorizontal();
     void flipVertical();
     void rotatePos90();
     void rotateNeg90();
-    void addBorder(Pixel & borderPx, unsigned width);
+    void addBorder(Pixel borderPx, unsigned width);
     void pointillize();
+
 
     /////////////////////////
     // convenience
-
-    // fetch a pixel at a given coordinate
-    Pixel & pixelAt(unsigned X, unsigned Y);
 
     // fetch a row at a given X
     // NOTE: columnAt creates a new PixelVector
@@ -82,10 +103,23 @@ public:
     // return height
     unsigned getHeight() const { return this->y; }
 
+    // read chars from `data` into `this->pixels`
+    void expandImage(charArray data);
+
+    // flatten `this->pixels` into `data` to write
+    void flattenImage(charArray data, unsigned dataLength);
+
     /////////////////////////
     // overloaded operators
+    // <<
     friend std::ostream & operator<<(std::ostream& out, const Image& img);
+    // []
     PixelVector & operator[](unsigned index);
+    // !
+    bool operator!();
+    // assignment
+    Image & operator=(const Image &that);
+    // copy ctor
     Image(const Image &that);
 };
 

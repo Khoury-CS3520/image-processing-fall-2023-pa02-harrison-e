@@ -7,7 +7,7 @@
 // default
 PixelVector::PixelVector() {
     length = 0;
-    capacity = 1;
+    capacity = 2;
     vec = new Pixel[capacity];
     componentsUsed = GR;
 }
@@ -28,12 +28,11 @@ PixelVector::PixelVector(unsigned capacity, channel_t componentsUsed) {
 
 // copy ctor
 PixelVector::PixelVector(const PixelVector &that) {
-    cout << "copy ctor" << endl;
     this->capacity = that.capacity;
     this->length = that.length;
     this->componentsUsed = that.componentsUsed;
     vec = new Pixel[capacity];
-    for (int p = 0; p < capacity; p++)
+    for (unsigned p = 0; p < capacity; p++)
         this->vec[p] = that.vec[p];
 }
 
@@ -47,14 +46,14 @@ PixelVector& PixelVector::operator=(const PixelVector &that) {
         this->length = that.length;
         this->componentsUsed = that.componentsUsed;
         this->vec = new Pixel[capacity];
-        for (int p = 0; p < capacity; p++)
+        for (unsigned p = 0; p < capacity; p++)
             this->vec[p] = that.vec[p];
     }
     return *this;
 }
 
 // []
-Pixel& PixelVector::operator[](unsigned int index) {
+Pixel& PixelVector::operator[](unsigned index) {
     if (index < length)
         return vec[index];
 }
@@ -74,7 +73,7 @@ ostream& operator<<(ostream& out, const PixelVector& v) {
 void PixelVector::resize(unsigned delta, unsigned offset) {
     if (delta != 0 && offset <= delta) {
         Pixel* temp = new Pixel[capacity + delta];
-        for (int p = 0; p < this->capacity; p++)
+        for (unsigned p = 0; p < this->capacity; p++)
             temp[p + offset] = this->vec[p];
         delete[] this->vec;
         this->vec = temp;
@@ -83,7 +82,7 @@ void PixelVector::resize(unsigned delta, unsigned offset) {
 }
 
 // push pixel to back of vec
-void PixelVector::pushBack(Pixel& pixel) {
+void PixelVector::pushBack(const Pixel &pixel) {
     if (length >= capacity)
         this->resize(capacity, 0);
     vec[length] = pixel;
@@ -92,8 +91,8 @@ void PixelVector::pushBack(Pixel& pixel) {
 
 // reverse this vec
 void PixelVector::reverse() {
-    Pixel* rev = new Pixel[this->capacity];
-    for (int p = 0; p < this->length; p++)
+    Pixel* rev = new Pixel [this->capacity];
+    for (unsigned p = 0; p < this->length; p++)
         rev[p] = this->vec[this->length - p - 1];
     delete[] this->vec;
     this->vec = rev;

@@ -1,7 +1,7 @@
 #ifndef IMAGELIB_PIXEL_H
 #define IMAGELIB_PIXEL_H
 #include <iostream>
-using std::cout, std::cerr; // for debugging
+using std::cerr; // for debugging
 using std::endl, std::ostream;
 
 /**
@@ -21,9 +21,8 @@ typedef enum channelType {
 
 /**
  * Represents a single pixel of an Image
- * A grayscale pixel uses
  *
- * @param r The red (R) value of a RGB(a) pixel
+ * @param r The red (R) value of a RGB(a) pixel, or the gray value of an GR(a) pixel
  * @param g The green (G) value of a RGB(a) pixel
  * @param b The blue (B) value of a RGB(a) pixel
  * @param a The alpha (a) value of a GRa/RGBa pixel
@@ -53,21 +52,16 @@ public:
     ~Pixel() = default;
 
     // copy assignment operator
-    Pixel &operator=(const Pixel &);
-
+    Pixel & operator=(const Pixel &);
 
     // getters
     unsigned char getR() const { return r; }
     unsigned char getG() const { return g; }
     unsigned char getB() const { return b; }
     unsigned char getA() const { return a; }
-    channel_t getCompUsed() const { return componentsUsed; }
 
-    // setters
-    void setR(const unsigned char R) { this->r = R; }
-    void setG(const unsigned char G) { this->g = G; }
-    void setB(const unsigned char B) { this->b = B; }
-    void setA(const unsigned char A) { this->a = A; }
+    // returns intensity of this pixel (for pointillization)
+    unsigned char getIntensity();
 
     friend std::ostream& operator<<(std::ostream& out, const Pixel& px);
 };
