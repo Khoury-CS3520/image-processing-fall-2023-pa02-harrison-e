@@ -56,7 +56,7 @@ public:
     // default
     Image() : x{}, y{}, componentsUsed{GR}, inputFilepath{}, outputFilepath{}, pixels{nullptr} {}
 
-    // constructor for grey gradient
+    // constructor for grey gradient (for testing)
     Image(unsigned X, unsigned Y);
 
     // destructor

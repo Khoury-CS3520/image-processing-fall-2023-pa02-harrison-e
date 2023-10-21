@@ -50,11 +50,13 @@ bool imageExists(Image &img) {
 // controller / driver
 // supports terminal
 int main(int argc, char* argv[]) {
-    bool running = argc == 2 && strcmp(argv[1], "-c");
+    string flag = "-c";
+    bool running = argc >= 2 && strcmp(flag.c_str(), argv[1]) == 0;
     if (!running) {
         cout << "Run with \"-c\" flag to run controller. Bye bye!" << endl;
         return 0;
     }
+
     // case variables
     Image img = Image();
     string inFilename {};
